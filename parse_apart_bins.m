@@ -1,6 +1,6 @@
 subject_list = {'A_NS707.002'};
 eeglab
-EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
+EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow_event.set');
 numbins = 6;
 bin = 1;
 bin_epochs = struct();
@@ -13,10 +13,10 @@ todestroy = [];
 
     
     if EEG.EVENTLIST.eventinfo(initnum).bini == bin
-
+        if EEG.EVENTLIST.eventinfo(initnum).flag == 0
         epoch = EEG.EVENTLIST.eventinfo(initnum).bepoch;
         todestroy(end+1) = epoch;
-    
+        end
     end
 
     initnum = initnum + 1;
