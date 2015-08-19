@@ -35,10 +35,6 @@ bin_epochs = setfield(bin_epochs,strbinacc,marked_accept);
 bin_epochs = setfield(bin_epochs,strbinrej,marked_reject);
 disp(bin_epochs.(strbinacc));
 
-%EEG = pop_select( EEG,'trial',[todestroy] );
-%EEG.setname = ['laloooo_' bin];
-%EEG= pop_saveset(EEG, 'filename', [bin 'heyoo_blist.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
-
 bin = bin + 1;
 
 end
@@ -46,16 +42,18 @@ bin = 1;
 while bin <= numbins
    
 strbin = num2str(bin);
-strbin = ['bin' strbin '_accepted'];
+strbinacc = ['bin' strbin '_accepted'];
+strbinrej = ['bin' strbin '_rejected'];
 
 EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
-EEG = pop_select( EEG,'trial',[bin_epochs.(strbin)] );
-EEG.setname = [strbin '_all'];
-EEG= pop_saveset(EEG, 'filename', [strbin '_all.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
+EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
+EEG.setname = strbinacc;
+EEG= pop_saveset(EEG, 'filename', [strbinacc '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
 
-    bin = bin + 1;
+EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
+EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
+EEG.setname = strbinrej;
+EEG= pop_saveset(EEG, 'filename', [strbinrej '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
+
+bin = bin + 1;
 end
-%EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
-%EEG = pop_select( EEG,'trial',[bin_epochs.bin1] );
-%EEG.setname = ['laloooo_1' bin];
-%EEG= pop_saveset(EEG, 'filename', [bin '111_heyoo_blist.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
