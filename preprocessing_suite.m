@@ -39,42 +39,42 @@ clc
 
 %% This defines the list of subjects
 
-subject_list = {'A_NS707.002' 'A_NS708.002'};
+subject_list = {'A_NS702.002' 'A_NS703.002' 'A_NS704.002' 'A_NS705.002'};
 
 nsubj = length(subject_list);
 
-home_path  = home_path '/whatever/';
+
+%
+
+% Processing options:
+save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only final stage
+calculate_ICA = 0; % Calculate ICA weights (performed on continuous data, before epoching)? NOTE: This is processor intensive! Consider running in parallel if more than one subject.
+do_auto_epoch_rej = 0; % Use auto epoch rejection algorithms?
+starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
+
+% Input paths:
+home_path  = '/Users/stephen/desktop/script_deploy';
 bdf_name = 'ns_na_w49.txt'; % The BDF file should reside in './helperfiles'.
 chan_loc = 'GSN-HydroCel-129.sfp';
-%
 
-% Set the save_everything variable to 1 to save all of the intermediate files to the hard drive
+input_raw = [home_path '/in_1_raw'];
+input_set = [home_path '/in_2_set'];
 
-% Set to 0 to save only the save set after filtering, after channel location info, and final epoched set
+% Output paths:
+data_path = [home_path '/out_1_set']; %where you'll save the .set files
+data_path_filt = [home_path '/out_2_filtered']; %where you'll save the _filt.set files
+data_path_resample = [home_path '/out_3_resampled']; %where you'll save the resampled set files
+data_path_chlocs = [home_path '/out_4_ch_locs']; %where you'll save the _chlocs.set files
+data_path_ica = [home_path '/out_5_ICA_weights']; %where you'll save sets with ICA weights computed
+data_path_epoched = [home_path '/out_6_epoched']; %where you'll save the _epoched.set files
+data_path_eyecatch = [home_path '/out_6a_eyecatch']; %where you'll save the _epoched.set files
+data_path_erej = [home_path '/out_7_auto_epoch_rej']; %where you'll save sets that have epochs marked for rejection
+data_path_binepochs = [home_path '/out_8_bin_epochs']; %where you'll save sets that have epochs marked for rejection
+data_path_bin_accepted = [home_path '/out_9_bin_accepted']; %where you'll save sets that have epochs marked for rejection
+data_path_bin_rejected = [home_path '/out_10_bin_rejected']; %where you'll save sets that have epochs marked for rejection
 
-%
-
-save_everything  = 1;
-do_erej = 0;
-
-%
-
-% Loop through all subjects listed in subject_list
-
-data_path  = [home_path 'preprocsets_1/']; %where you'll save the .set files
-data_path_filt = [home_path 'preprocsets_2_filt/']; %where you'll save the _filt.set files
-data_path_resample = [home_path 'preprocsets_3_resam/']; %where you'll save the resampled set files
-data_path_chlocs = [home_path 'preprocsets_4_chlocs/']; %where you'll save the _chlocs.set files
-data_path_ica = [home_path 'preprocsets_5_ica/']; %where you'll save sets with ICA weights computed
-data_path_epoched = [home_path 'preprocsets_6_epoched/']; %where you'll save the _epoched.set files
-data_path_erej = [home_path 'preprocsets_7_erej/']; %where you'll save sets that have epochs marked for rejection
-
-data_path_icaeyerej = [home_path 'preprocsets_iceeyerej/'];
-
-data_path_erpset  = [home_path 'erpset/']; %where you'll export ERP sets
-data_path_erptext = [home_path 'erptext/']; %where you'll export text versions of your ERP sets
-
-
+data_path_erpset  = [home_path '/out_ERP_set']; %where you'll export ERP sets
+data_path_erptext = [home_path '/out_ERP_text']; %where you'll export text versions of your ERP sets
 
 for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallelized version
     
@@ -86,25 +86,14 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
     %%
     eeglab
     %%IMPORT DATA
-    %
-    
-    
-    %
     
     % Check to make sure the raw file exists
     
     %
-    
-    sname = [home_path subject_list{s} '.raw'];  %%check to make sure raw file exists for each subject in the directory specified
-    
+    sname = [input_raw '/' subject_list{s} '.raw'];  %%check to make sure raw file exists for each subject in the directory specified
     if exist(sname, 'file')<=0
-        
-        
         fprintf('\n *** WARNING: %s does not exist *** \n', sname);
-        
         fprintf('\n *** Skip all processing for this subject *** \n\n');
-        
-        
     else
         
         %
@@ -115,7 +104,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         fprintf('\n\n\n**** %s: Loading raw file ****\n\n\n', subject_list{s});
         
-        EEG = pop_fileio([home_path subject_list{s} '.raw']);
+        EEG = pop_readegi([input_raw '/' subject_list{s} '.raw']);
         
         %EEG = pop_loadset([home_path subject_list{s} '.set']) %use this if
         %you are importting set files, not raw
@@ -168,7 +157,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         %         %change this path to match where channel information file is for
         %         your setup (You can find this on the ERPLAB help site
         
-        EEG=pop_chanedit(EEG, 'lookup',[home_path 'helperfiles/' chan_loc]);
+        EEG=pop_chanedit(EEG, 'lookup',[home_path '/helperfiles/' chan_loc]);
         EEG.setname = [EEG.setname '_chlocs'];
         
         if (save_everything)
@@ -178,7 +167,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         %%      Create EVENTLIST and save (pop_editeventlist adds _elist suffix)
         
         fprintf('\n\n\n**** %s: Creating eventlist ****\n\n\n', subject_list{s});
-        elist_path  = [home_path 'elist/']; %where you'll save the elist.txt files
+        elist_path  = [home_path '/elist/']; %where you'll save the elist.txt files
         
         %IMPORTANT: Netstation requires the use of four-character
         %tags or codes. ERPLab is not able to process letter codes, and so
@@ -208,9 +197,9 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         fprintf('\n\n\n**** %s: Running BinLister ****\n\n\n', subject_list{s});
         
-        blist_path  = [home_path 'blist/']; %where you'll save the blist.txt files
+        blist_path  = [home_path '/blist/']; %where you'll save the blist.txt files
         
-        EEG  = pop_binlister( EEG , 'BDF', [home_path 'helperfiles/' bdf_name], 'ExportEL', [blist_path subject_list{s} '_blist.txt'], 'ImportEL', 'no', 'Saveas', 'on', 'SendEL2', 'EEG&Text', 'Warning', 'on' );
+        EEG  = pop_binlister( EEG , 'BDF', [home_path '/helperfiles/' bdf_name], 'ExportEL', [blist_path subject_list{s} '_blist.txt'], 'ImportEL', 'no', 'Saveas', 'on', 'SendEL2', 'EEG&Text', 'Warning', 'on' );
         EEG.setname = [subject_list{s} '_blist'];
         
         if (save_everything)
@@ -222,14 +211,15 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         %
         %% Compute ICA weights before extracting epochs
-        
-        %fprintf('\n\n\n**** %s: Computing ICA Weights ****\n\n\n', subject_list{s});
-        
-        %EEG = pop_runica( EEG , 'concatenate', 'off', 'extended', 1);
-        
-        % if (save_everything)
-        % EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_ica.set'], 'filepath', data_path_ica);
-        % end
+        if (calculate_ICA)
+            fprintf('\n\n\n**** %s: Computing ICA Weights ****\n\n\n', subject_list{s});
+            
+            EEG = pop_runica( EEG , 'concatenate', 'off', 'extended', 1);
+            
+            if (save_everything)
+                EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_ica.set'], 'filepath', data_path_ica);
+            end
+        end
         
         %% Use Measure Projection Toolbox functionality (EyeCatch) to identify and purge independent components associated with eyeblinks
         
@@ -277,7 +267,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         % Then save with _erej suffix
         
         %
-        if (do_erej)
+        if (do_auto_epoch_rej)
             fprintf('\n\n\n**** %s: Epoch rejection ****\n\n\n', subject_list{s});
             
             %extreme values
@@ -312,11 +302,11 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             marked_accept = [];
             marked_reject = [];
             while initnum <= eventlist_rows
-                if EEG.EVENTLIST.eventinfo(initnum).bini == bin
+                if (EEG.EVENTLIST.eventinfo(initnum).bini == bin)
                     epoch = EEG.EVENTLIST.eventinfo(initnum).bepoch;
-                    if EEG.EVENTLIST.eventinfo(initnum).flag == 0 % Lack of flag in EVENTLIST, 0, indicates epoch was not selected for rejection
+                    if (EEG.EVENTLIST.eventinfo(initnum).flag == 0) % Lack of flag in EVENTLIST, 0, indicates epoch was not selected for rejection
                         marked_accept(end+1) = epoch;
-                    elseif EEG.EVENTLIST.eventinfo(initnum).flag == 1 % Presence of flag, 1, indicates epoch was selected for rejection
+                    elseif (EEG.EVENTLIST.eventinfo(initnum).flag == 1) % Presence of flag, 1, indicates epoch was selected for rejection
                         marked_reject(end+1) = epoch;
                     end
                 end
@@ -339,14 +329,14 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             strbinacc = ['bin' strbin '_accepted'];
             strbinrej = ['bin' strbin '_rejected'];
             
-            if bin_epochs.(strbinacc) ~= 0 % Saves version of dataset that contains only accepted epochs
+            if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs
                 EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
                 EEG.setname = strbinacc;
                 EEG= pop_saveset(EEG, 'filename', [strbinacc '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
             end
             
-            if bin_epochs.(strbinrej) ~= 0 % Saves version of dataset that contains only rejected epochs
+            if (bin_epochs.(strbinrej) ~= 0) % Saves version of dataset that contains only rejected epochs
                 EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
                 EEG.setname = strbinrej;
@@ -364,7 +354,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         ERP = pop_savemyerp(ERP, 'erpname', [subject_list{s}], 'filename', [subject_list{s} '.erp'], 'filepath', data_path_erpset, 'warning', 'off');
         
-        ERP = pop_export2text( ERP, [data_path_erptext subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
+        ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
         
     end % of else statement
     %eeglab rebuild
