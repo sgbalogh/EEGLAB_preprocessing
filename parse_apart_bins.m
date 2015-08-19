@@ -8,15 +8,19 @@ eventlist_rows = length(EEG.EVENTLIST.eventinfo);
 disp(eventlist_rows);
 while bin <= numbins
 initnum = 1;
-todestroy = [];
+marked_accept = [];
+marked_reject = [];
     while initnum < eventlist_rows
 
     
     if EEG.EVENTLIST.eventinfo(initnum).bini == bin
-        if EEG.EVENTLIST.eventinfo(initnum).flag == 0
         epoch = EEG.EVENTLIST.eventinfo(initnum).bepoch;
-        todestroy(end+1) = epoch;
+        if EEG.EVENTLIST.eventinfo(initnum).flag == 0
+        marked_accept(end+1) = epoch;
+        elseif EEG.EVENTLIST.eventinfo(initnum).flag == 1
+        marked_reject(end+1) = epoch;
         end
+        
     end
 
     initnum = initnum + 1;
@@ -24,10 +28,12 @@ todestroy = [];
     end
 
 strbin = num2str(bin);
-strbin = ['bin' strbin];
+strbinacc = ['bin' strbin '_accepted'];
+strbinrej = ['bin' strbin '_rejected'];
 
-bin_epochs = setfield(bin_epochs,strbin,todestroy);
-disp(bin_epochs.(strbin));
+bin_epochs = setfield(bin_epochs,strbinacc,marked_accept);
+bin_epochs = setfield(bin_epochs,strbinrej,marked_reject);
+disp(bin_epochs.(strbinacc));
 
 %EEG = pop_select( EEG,'trial',[todestroy] );
 %EEG.setname = ['laloooo_' bin];
@@ -40,7 +46,7 @@ bin = 1;
 while bin <= numbins
    
 strbin = num2str(bin);
-strbin = ['bin' strbin];
+strbin = ['bin' strbin '_accepted'];
 
 EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
 EEG = pop_select( EEG,'trial',[bin_epochs.(strbin)] );
