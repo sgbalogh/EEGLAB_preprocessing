@@ -45,15 +45,15 @@ strbin = num2str(bin);
 strbinacc = ['bin' strbin '_accepted'];
 strbinrej = ['bin' strbin '_rejected'];
 
-EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
 if bin_epochs.(strbinacc) ~= 0
+    EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
     EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
     EEG.setname = strbinacc;
     EEG= pop_saveset(EEG, 'filename', [strbinacc '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
 end
 
-EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
 if bin_epochs.(strbinrej) ~= 0
+    EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
     EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
     EEG.setname = strbinrej;
     EEG= pop_saveset(EEG, 'filename', [strbinrej '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
