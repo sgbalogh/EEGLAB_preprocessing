@@ -348,13 +348,12 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         
         %% ERP set creation and export to text (universal)
-        
+        EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '_epoched.set']);
         ERP = pop_averager( EEG , 'Criterion', 'good', 'DSindex',1, 'Warning', 'off' );
         %ERP = pop_averager( EEG , 'Criterion', 'good', 'DSindex',1, 'Stdev', 'on', 'Warning', 'off' );
         
         ERP = pop_savemyerp(ERP, 'erpname', [subject_list{s}], 'filename', [subject_list{s} '.erp'], 'filepath', data_path_erpset, 'warning', 'off');
-        
-        %ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
+        ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
         
     end % of else statement
     %eeglab rebuild
