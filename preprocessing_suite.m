@@ -330,17 +330,17 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             strbinrej = ['bin' strbin '_rejected'];
             
             if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs
-                EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
+                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '.set']);
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
                 EEG.setname = strbinacc;
-                EEG= pop_saveset(EEG, 'filename', [strbinacc '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
+                EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinacc '.set'], 'filepath', data_path_bin_accepted);
             end
             
             if (bin_epochs.(strbinrej) ~= 0) % Saves version of dataset that contains only rejected epochs
-                EEG = pop_loadset('/Users/stephen/Desktop/neuro/trynow.set');
+                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '.set']);
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
                 EEG.setname = strbinrej;
-                EEG= pop_saveset(EEG, 'filename', [strbinrej '.set'], 'filepath', '/Users/stephen/Desktop/neuro/new/');
+                EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinrej '.set'], 'filepath', data_path_bin_rejected);
             end
             
             bin = bin + 1;
@@ -362,7 +362,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
 end % end of looping through all subjects
 %
 
-matlabpool close
+%matlabpool close
 
 fprintf('\n\n\n**** FINISHED ****\n\n\n');
 
