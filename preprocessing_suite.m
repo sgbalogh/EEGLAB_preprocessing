@@ -40,17 +40,13 @@ clc
 %% This defines the list of subjects
 
 subject_list = {'A_NS702.002' 'A_NS703.002' 'A_NS704.002' 'A_NS705.002'};
-
 nsubj = length(subject_list);
-
-
-%
 
 % Processing options:
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only final stage
 calculate_ICA = 0; % Calculate ICA weights (performed on continuous data, before epoching)? NOTE: This is processor intensive! Consider running in parallel if more than one subject.
 do_auto_epoch_rej = 1; % Use auto epoch rejection algorithms?
-starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
+starting_data = 'set'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
 
 % Input paths:
 home_path  = '/Users/stephen/desktop/script_deploy';
@@ -73,58 +69,48 @@ data_path_binepochs = [home_path '/out_8_bin_epochs']; %where you'll save sets t
 data_path_bin_accepted = [home_path '/out_9_bin_accepted']; %where you'll save sets that have epochs marked for rejection
 data_path_bin_rejected = [home_path '/out_10_bin_rejected']; %where you'll save sets that have epochs marked for rejection
 
-data_path_erpset  = [home_path '/out_ERP_set']; %where you'll export ERP sets
-data_path_erptext = [home_path '/out_ERP_text']; %where you'll export text versions of your ERP sets
+data_path_elist = [home_path '/out_elist']; % where you'll save the _elist.txt files
+data_path_blist = [home_path '/out_blist']; % where you'll save the _blist.txt files
+data_path_erpset = [home_path '/out_ERP_set']; % where you'll export ERP sets
+data_path_erptext = [home_path '/out_ERP_text']; % where you'll export text versions of your ERP sets
 
 for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallelized version
     
-    
-    
     fprintf('\n******\nProcessing subject %s\n******\n\n', subject_list{s});
-    
     
     %%
     eeglab
-    %%IMPORT DATA
-    
-    % Check to make sure the raw file exists
-    
-    %
-    sname = [input_raw '/' subject_list{s} '.raw'];  %%check to make sure raw file exists for each subject in the directory specified
-    if exist(sname, 'file')<=0
-        fprintf('\n *** WARNING: %s does not exist *** \n', sname);
+    %% IMPORT DATA
+    % Check to make sure the raw or set file exists
+
+    sname_raw = [input_raw '/' subject_list{s} '.raw'];
+    sname_set = [input_set '/' subject_list{s} '.set'];
+    if (exist(sname_raw, 'file')<=0 && exist(sname_set, 'file')<=0)
+        fprintf('\n *** WARNING: %s or .set does not exist *** \n', sname_raw);
         fprintf('\n *** Skip all processing for this subject *** \n\n');
     else
-        
+
+        %% Load RAW or SET file;
         %
-        
-        % Load raw file;
-        
-        %
-        
-        fprintf('\n\n\n**** %s: Loading raw file ****\n\n\n', subject_list{s});
-        
-        EEG = pop_readegi([input_raw '/' subject_list{s} '.raw']);
-        
-        %EEG = pop_loadset([home_path subject_list{s} '.set']) %use this if
-        %you are importting set files, not raw
-        
-        EEG.setname = [subject_list{s}]; % name for the dataset menu
+        if (strcmp(starting_data,'raw'))
+            fprintf('\n\n\n**** %s: Loading RAW file ****\n\n\n', subject_list{s});
+            EEG = pop_readegi([input_raw '/' subject_list{s} '.raw']);
+            EEG.setname = [subject_list{s}]; % name for the dataset menu
+            
+        elseif (strcmp(starting_data,'set'))
+            fprintf('\n\n\n**** %s: Loading SET file ****\n\n\n', subject_list{s});
+            EEG = pop_loadset([input_set '/' subject_list{s} '.set']);
+
+        end
         
         if (save_everything)
             EEG = pop_saveset(EEG, 'filename', [subject_list{s} '.set'], 'filepath', data_path);
         end
-        
-        
-        %
-        
-        
+
         
         %% Filter data - using high pass 0.1, remove dc, low pass at 30hz,
         % notch at 60hz
-        
-        %
-        %
+
         fprintf('\n\n\n**** %s: High-pass filtering EEG at 0.1, Low-pass filtering at 30Hz, Notch at 60 Hz ****\n\n\n', subject_list{s});
         
         EEG  = pop_basicfilter( EEG,  1:128 , 'Cutoff',  60, 'Design', 'notch', 'Filter', 'PMnotch', 'Order',  180, 'RemoveDC', 'on' );
@@ -151,9 +137,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         end
         %
         %%       % Add appropriate channel location information
-        %
-        %         %
-        %
+
         %         %change this path to match where channel information file is for
         %         your setup (You can find this on the ERPLAB help site
         
@@ -167,7 +151,6 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         %%      Create EVENTLIST and save (pop_editeventlist adds _elist suffix)
         
         fprintf('\n\n\n**** %s: Creating eventlist ****\n\n\n', subject_list{s});
-        elist_path  = [home_path '/elist/']; %where you'll save the elist.txt files
         
         %IMPORTANT: Netstation requires the use of four-character
         %tags or codes. ERPLab is not able to process letter codes, and so
@@ -177,17 +160,10 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         %The following commented line of code will work provided that you
         %provide a text list with the label--> code conversion
         %
-        EEG  = pop_creabasiceventlist( EEG , 'AlphanumericCleaning', 'on', 'Eventlist', [elist_path subject_list{s} '_elist.txt'], 'Newboundary', { -99 }, 'Stringboundary', { 'boundary' }, 'Warning', 'on' );
+        EEG  = pop_creabasiceventlist( EEG , 'AlphanumericCleaning', 'on', 'Eventlist', [data_path_elist '/' subject_list{s} '_elist.txt'], 'Newboundary', { -99 }, 'Stringboundary', { 'boundary' }, 'Warning', 'on' );
         %       EEG  = pop_editeventlist( EEG , 'BoundaryNumeric', {255}, 'BoundaryString', { 'boundary' }, 'ExportEL', [elist_path subject_list{s} '_elist.txt'], 'List', '[LOCATION OF YOUR TEXT FILE WITH CODES HERE', 'SendEL2', 'EEG&Text', 'UpdateEEG', 'on' );
         
         EEG.setname = [EEG.setname '_elist'];
-        
-        if (save_everything)
-            
-            EEG = pop_saveset(EEG, 'filename', [subject_list{s} '_elist.set'], 'filepath', elist_path);
-            
-        end
-        
         
         
         %% Use Binlister to sort the bins and save with _blist suffix
@@ -195,19 +171,10 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         % Remember to enter the correct path to your bin descriptor file
         % (BDF), in this case "ns_na_w49.txt"
         
-        fprintf('\n\n\n**** %s: Running BinLister ****\n\n\n', subject_list{s});
+        fprintf('\n\n\n**** %s: Running Bin Lister ****\n\n\n', subject_list{s});
         
-        blist_path  = [home_path '/blist/']; %where you'll save the blist.txt files
-        
-        EEG  = pop_binlister( EEG , 'BDF', [home_path '/helperfiles/' bdf_name], 'ExportEL', [blist_path subject_list{s} '_blist.txt'], 'ImportEL', 'no', 'Saveas', 'on', 'SendEL2', 'EEG&Text', 'Warning', 'on' );
+        EEG  = pop_binlister( EEG , 'BDF', [home_path '/helperfiles/' bdf_name], 'ExportEL', [data_path_blist '/' subject_list{s} '_blist.txt'], 'ImportEL', 'no', 'Saveas', 'on', 'SendEL2', 'EEG&Text', 'Warning', 'on' );
         EEG.setname = [subject_list{s} '_blist'];
-        
-        if (save_everything)
-            
-            EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_blist.set'], 'filepath', blist_path);
-            %
-        end
-        
         
         %
         %% Compute ICA weights before extracting epochs
@@ -263,20 +230,15 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         
         %%  Automatic epoch rejection
-        
-        % Then save with _erej suffix
-        
-        %
+ 
         if (do_auto_epoch_rej)
             fprintf('\n\n\n**** %s: Epoch rejection ****\n\n\n', subject_list{s});
             
-            %extreme values
+            % Extreme Values
             EEG  = pop_artextval( EEG , 'Channel',  1:128, 'Flag',  1, 'Review', 'on', 'Threshold', [ -100 100], 'Twindow', [ -252 996] );
-            
-            %moving window
+            % Moving Window
             EEG  = pop_artmwppth( EEG , 'Channel',  1:128, 'Flag',  1, 'Review', 'on', 'Threshold',  100, 'Twindow', [ -300 996], 'Windowsize',  300, 'Windowstep',  100 );
-            
-            %step like artifacts
+            % Step-like Artifacts
             EEG  = pop_artstep( EEG , 'Channel',  1:128, 'Flag',  1, 'Review', 'on', 'Threshold',  100, 'Twindow', [ -300 996], 'Windowsize',  200, 'Windowstep',  50 );
             
             EEG.setname= [subject_list{s} '_erej'];
@@ -353,7 +315,9 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         %ERP = pop_averager( EEG , 'Criterion', 'good', 'DSindex',1, 'Stdev', 'on', 'Warning', 'off' );
         
         ERP = pop_savemyerp(ERP, 'erpname', [subject_list{s}], 'filename', [subject_list{s} '.erp'], 'filepath', data_path_erpset, 'warning', 'off');
-        ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
+        %ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
+        %ERP = pop_loaderp( 'filename', [subject_list{s} '.erp'], 'filepath', data_path_erpset );
+        %ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],  1:numbins, 'electrodes', 'on', 'precision',  4, 'time', 'on', 'timeunit',  0.001 );
         
     end % of else statement
     %eeglab rebuild
