@@ -10,7 +10,8 @@
 % ------------------------------------------------
 % Updates and revisions
 %
-%
+% Modules to complete:
+% 1. Separation by bin
 % ------------------------------------------------
 
 % Clear memory and the command window
@@ -46,7 +47,7 @@ nsubj = length(subject_list);
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only final stage
 calculate_ICA = 0; % Calculate ICA weights (performed on continuous data, before epoching)? NOTE: This is processor intensive! Consider running in parallel if more than one subject.
 do_auto_epoch_rej = 1; % Use auto epoch rejection algorithms?
-starting_data = 'set'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
+starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
 
 % Input paths:
 home_path  = '/Users/stephen/desktop/script_deploy';
@@ -85,6 +86,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
 
     sname_raw = [input_raw '/' subject_list{s} '.raw'];
     sname_set = [input_set '/' subject_list{s} '.set'];
+    
     if (exist(sname_raw, 'file')<=0 && exist(sname_set, 'file')<=0)
         fprintf('\n *** WARNING: %s or .set does not exist *** \n', sname_raw);
         fprintf('\n *** Skip all processing for this subject *** \n\n');
@@ -107,6 +109,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             EEG = pop_saveset(EEG, 'filename', [subject_list{s} '.set'], 'filepath', data_path);
         end
 
+        last_file_altered = [data_path '/' subject_list{s} '.set'];
         
         %% Filter data - using high pass 0.1, remove dc, low pass at 30hz,
         % notch at 60hz
@@ -124,6 +127,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             EEG = pop_saveset(EEG, 'filename', [EEG.setname '.set'], 'filepath', data_path_filt);
         end
         
+        last_file_altered = [data_path_filt '/' EEG.setname '.set'];
         %
         
         %% Downsample data to 250hz
@@ -135,6 +139,9 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         if (save_everything)
             EEG = pop_saveset(EEG, 'filename', [EEG.setname '.set'], 'filepath', data_path_resample);
         end
+        
+        last_file_altered = [data_path_resample '/' EEG.setname '.set'];
+        
         %
         %%       % Add appropriate channel location information
 
@@ -147,6 +154,9 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         if (save_everything)
             EEG = pop_saveset(EEG, 'filename', [EEG.setname '.set'], 'filepath', data_path_chlocs);
         end
+        
+        last_file_altered = [data_path_chlocs '/' EEG.setname '.set'];
+        
         %         %
         %%      Create EVENTLIST and save (pop_editeventlist adds _elist suffix)
         
@@ -188,6 +198,8 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             end
         end
         
+        last_file_altered = [data_path_ica '/' subject_list{s} '_ica.set'];
+        
         %% Use Measure Projection Toolbox functionality (EyeCatch) to identify and purge independent components associated with eyeblinks
         
         % Measure Projection Toolbox (http://sccn.ucsd.edu/wiki/MPT) must
@@ -209,8 +221,11 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         %EEG = pop_subcomp( EEG, eyeIC, 0);
         
         %if
-        %EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_ica.set'], 'filepath', data_path_icaeyerej);
+        %EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_ica_er.set'], 'filepath', data_path_icaeyerej);
         %end
+        
+        %last_file_altered = [data_path_icaeyerej '/' subject_list{s} '_ica_er.set'];
+        
         
         %%  Extracts bin-based epochs
         
@@ -228,6 +243,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             EEG = pop_saveset(EEG, 'filename', [subject_list{s} '_epoched.set'], 'filepath', data_path_epoched);
         end
         
+        last_file_altered = [data_path_epoched '/' subject_list{s} '_epoched.set'];
         
         %%  Automatic epoch rejection
  
@@ -248,6 +264,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             end
         end
         
+        last_file_altered = [data_path_erej '/' subject_list{s} '_erej.set'];
         
         %% Bin and epoch separation
         
@@ -261,11 +278,13 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         bin = 1; % Initial value for counter
         while bin <= numbins
             initnum = 1;
+            all_epochs = [];
             marked_accept = [];
             marked_reject = [];
             while initnum <= eventlist_rows
                 if (EEG.EVENTLIST.eventinfo(initnum).bini == bin)
                     epoch = EEG.EVENTLIST.eventinfo(initnum).bepoch;
+                    all_epochs(end+1) = epoch;
                     if (EEG.EVENTLIST.eventinfo(initnum).flag == 0) % Lack of flag in EVENTLIST, 0, indicates epoch was not selected for rejection
                         marked_accept(end+1) = epoch;
                     elseif (EEG.EVENTLIST.eventinfo(initnum).flag == 1) % Presence of flag, 1, indicates epoch was selected for rejection
@@ -275,8 +294,10 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
                 initnum = initnum + 1;
             end
             strbin = num2str(bin);
+            strbinall = ['bin' strbin '_all_epochs'];
             strbinacc = ['bin' strbin '_accepted'];
             strbinrej = ['bin' strbin '_rejected'];
+            bin_epochs = setfield(bin_epochs,strbinall,all_epochs);
             bin_epochs = setfield(bin_epochs,strbinacc,marked_accept);
             bin_epochs = setfield(bin_epochs,strbinrej,marked_reject);
             disp(bin_epochs.(strbinacc));
@@ -292,14 +313,14 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             strbinrej = ['bin' strbin '_rejected'];
             
             if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs
-                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '_epoched.set']);
+                EEG = pop_loadset(last_file_altered);
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
                 EEG.setname = strbinacc;
                 EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinacc '.set'], 'filepath', data_path_bin_accepted);
             end
             
             if (bin_epochs.(strbinrej) ~= 0) % Saves version of dataset that contains only rejected epochs
-                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '_epoched.set']);
+                EEG = pop_loadset(last_file_altered);
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
                 EEG.setname = strbinrej;
                 EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinrej '.set'], 'filepath', data_path_bin_rejected);
