@@ -49,7 +49,7 @@ nsubj = length(subject_list);
 % Processing options:
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only final stage
 calculate_ICA = 0; % Calculate ICA weights (performed on continuous data, before epoching)? NOTE: This is processor intensive! Consider running in parallel if more than one subject.
-do_auto_epoch_rej = 0; % Use auto epoch rejection algorithms?
+do_auto_epoch_rej = 1; % Use auto epoch rejection algorithms?
 starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
 
 % Input paths:
@@ -330,14 +330,14 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             strbinrej = ['bin' strbin '_rejected'];
             
             if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs
-                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '.set']);
+                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '_epoched.set']);
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
                 EEG.setname = strbinacc;
                 EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinacc '.set'], 'filepath', data_path_bin_accepted);
             end
             
             if (bin_epochs.(strbinrej) ~= 0) % Saves version of dataset that contains only rejected epochs
-                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '.set']);
+                EEG = pop_loadset([home_path '/out_6_epoched/' subject_list{s} '_epoched.set']);
                 EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
                 EEG.setname = strbinrej;
                 EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinrej '.set'], 'filepath', data_path_bin_rejected);
@@ -354,7 +354,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
         
         ERP = pop_savemyerp(ERP, 'erpname', [subject_list{s}], 'filename', [subject_list{s} '.erp'], 'filepath', data_path_erpset, 'warning', 'off');
         
-        ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
+        %ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],1, 'time', 'off', 'electrodes', 'on', 'transpose', 'off', 'precision',  4, 'timeunit',  0.001 );
         
     end % of else statement
     %eeglab rebuild
