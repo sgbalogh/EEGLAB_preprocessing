@@ -43,9 +43,9 @@ parallel_proc = 1;
 
 if (parallel_proc)
     if (nsubj <= 64)
-        matlabpool torque 14;
+        matlabpool('torque', nsubj);
     elseif (nsubj > 64);
-        matlabpool torque 64;
+        matlabpool('torque', 64);
     end
 end
 
