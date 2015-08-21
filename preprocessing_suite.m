@@ -301,7 +301,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             bin = 1; % Resets initial value for counter
             while bin <= numbins
                 strbin = num2str(bin);
-                strbinall = ['bin' strbin '_all_epochs'];
+                strbinall = ['bin' strbin '_all'];
                 strbinacc = ['bin' strbin '_accepted'];
                 strbinrej = ['bin' strbin '_rejected'];
                 if (bin_epochs.(strbinall) ~= 0) % Saves version of dataset that contains only accepted epochs
