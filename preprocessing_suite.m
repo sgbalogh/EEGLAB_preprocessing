@@ -33,11 +33,11 @@ clc
 % the acropolis account, will receive some angry e-mails from the
 % SysAdmin).
 
-% matlabpool torque 2
+%matlabpool torque 14;
 
 %% This defines the list of subjects
 
-subject_list = {'A_NS702.002' 'A_NS703.002' 'A_NS704.002' 'A_NS705.002'};
+subject_list = {'A_NS701.002' 'A_NS702.002' 'A_NS704.002' 'A_NS706.002' 'A_NS708.002' 'A_NS710.002' 'A_NS712.002' 'A_NS701.004' 'A_NS703.002' 'A_NS705.002' 'A_NS707.002' 'A_NS709.002' 'A_NS711.002' 'A_NS713.002'};
 nsubj = length(subject_list);
 
 % Processing options:
@@ -47,7 +47,7 @@ do_auto_epoch_rej = 1; % Use auto epoch rejection algorithms?
 starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
 
 % Input paths:
-home_path  = '/Users/stephen/desktop/script_deploy';
+home_path  = '/home/t-9balos/Documents/script_deploy_1';
 bdf_name = 'ns_na_w49.txt'; % The BDF file should reside in './helperfiles'.
 chan_loc = 'GSN-HydroCel-129.sfp';
 
@@ -85,7 +85,7 @@ data_path_blist = [home_path '/out_blist']; % where you'll save the _blist.txt f
 data_path_erpset = [home_path '/out_ERP_set']; % where you'll export ERP sets
 data_path_erptext = [home_path '/out_ERP_text']; % where you'll export text versions of your ERP sets
 
-for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallelized version
+parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallelized version
     
     fprintf('\n******\nProcessing subject %s\n******\n\n', subject_list{s});
     
@@ -256,7 +256,7 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             if (save_everything)
                 EEG = pop_saveset(EEG, 'filename', [subject_list{s} '_erej.set'], 'filepath', data_path_erej);
             end
-        last_file_altered = [data_path_erej '/' subject_list{s} '_erej.set'];
+            last_file_altered = [data_path_erej '/' subject_list{s} '_erej.set'];
         end
         
         %% Bin and epoch separation
@@ -301,14 +301,14 @@ for s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallel
             bin = 1; % Resets initial value for counter
             while bin <= numbins
                 strbin = num2str(bin);
-                strbinall = ['bin' strbin '_all'];
+                strbinall = ['bin' strbin '_all_epochs'];
                 strbinacc = ['bin' strbin '_accepted'];
                 strbinrej = ['bin' strbin '_rejected'];
                 if (bin_epochs.(strbinall) ~= 0) % Saves version of dataset that contains only accepted epochs
                     EEG = pop_loadset(last_file_altered);
                     EEG = pop_select( EEG,'trial',[bin_epochs.(strbinall)] );
                     EEG.setname = strbinall;
-                    EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinall '.set'], 'filepath', data_path_bin_epochs);
+                    EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_bin' strbin '_all.set'], 'filepath', data_path_bin_epochs);
                 end
                 if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs
                     EEG = pop_loadset(last_file_altered);
