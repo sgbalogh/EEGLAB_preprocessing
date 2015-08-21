@@ -33,16 +33,24 @@ clc
 % the acropolis account, will receive some angry e-mails from the
 % SysAdmin).
 
-%matlabpool torque 14;
 
 %% This defines the list of subjects
 
 subject_list = {'A_NS701.002' 'A_NS702.002' 'A_NS704.002' 'A_NS706.002' 'A_NS708.002' 'A_NS710.002' 'A_NS712.002' 'A_NS701.004' 'A_NS703.002' 'A_NS705.002' 'A_NS707.002' 'A_NS709.002' 'A_NS711.002' 'A_NS713.002'};
 nsubj = length(subject_list);
 
+parallel_proc = 1;
+
+if (parallel_proc)
+    if (nsubj <= 64)
+        matlabpool torque 14;
+    elseif (nsubj > 64);
+        matlabpool torque 64;
+    end
+end
+
 % Processing options:
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only final stage
-calculate_ICA = 0; % Calculate ICA weights (performed on continuous data, before epoching)? NOTE: This is processor intensive! Consider running in parallel if more than one subject.
 do_auto_epoch_rej = 1; % Use auto epoch rejection algorithms?
 starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively
 
@@ -192,7 +200,7 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
         end
         %
         %% Compute ICA weights before extracting epochs
-        if (calculate_ICA)
+        if (compute_ICA)
             fprintf('\n\n\n**** %s: Computing ICA Weights ****\n\n\n', subject_list{s});
             
             EEG = pop_runica( EEG , 'concatenate', 'off', 'extended', 1);
@@ -343,7 +351,7 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
 end % end of looping through all subjects
 %
 
-%matlabpool close
+matlabpool close
 
 fprintf('\n\n\n**** FINISHED ****\n\n\n');
 fprintf('\n\n\n**** FINAL OUTPUT FILES ARE NAMED _epoched %s: ****\n\n\n', data_path);
