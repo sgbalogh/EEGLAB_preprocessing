@@ -60,16 +60,16 @@ epoch_begin_pre_onset = -300.0;
 epoch_end_post_onset = 1000.0; % This (and previous) value may affect parameters of auto epoch rejection algorithms. Please review those parameters if you plan to use auto rejection.
 resample_value = 250;
 
-filter_data = 1;
-resample_data = 1;
-add_chlocs = 1;
-make_eventlist = 1;
-do_binlister = 1;
-compute_ICA = 1;
+filter_data = 1; % By default, high pass .1, low 30 Hz, notch at 60 Hz.
+resample_data = 1; % Downsample to value set above?
+add_chlocs = 1; % Attach channel location map to dataset? Required for ICA.
+make_eventlist = 1; % Produce EVENTLIST and save to file (necessary for binlister).
+do_binlister = 1; % Associates events in continuous data with bins specified in your bin-descriptor file (BDF).
+compute_ICA = 1; % Run continuous data through ICA? This is very processor intensive, and should be run in parallel if possible.
 use_eyecatch = 0; % Requires that Measure Projection Toolbox is installed and configured in your MATLAB environment. This section is inactivated by default.
-extract_epochs = 1;
-auto_epoch_rej = 1;
-bin_sorting = 1;
+extract_epochs = 1; % Creates epochs based on events that are placed into bins.
+auto_epoch_rej = 1; % Uses algorithms for automatically detecting epochs with artifacts, and marks them for rejection.
+bin_sorting = 1; % Sorts dataset into derivative datasets by bin, accepted trials, and rejected trials.
 calculate_ERP = 1; % Calculates an ERP from the input dataset; if your conditions are split across multiple datasets, you may want to create ERP sets manually (so as to specify multiple inputs).
 
 %% Output paths (no changes needed):
@@ -99,7 +99,7 @@ if (parallel_proc) % Initializes MATLAB workers on UChicago SSD's Acropolis clus
     end
 end
 
-parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core parallelized version
+parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi-core parallelized version, and 'for s=1:nsubj' otherwise.
     
     fprintf('\n******\nProcessing subject %s\n******\n\n', subject_list{s});
     
@@ -228,7 +228,8 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
             %eyeDetector = pr.eyeCatch;
             %[eyeIC, similarity scalpmapObj] = eyeDetector.detectFromEEG(EEG); % detect eye ICs
             %eyeIC                          % display the IC numbers for eye ICs.
-            %scalpmapObj.plot(eyeIC)        % plot eye ICs; this is only useful if you want to see displays of each component that is marked for rejection, which could clog up your UI if you are running many subjects
+            %scalpmapObj.plot(eyeIC)        % plot eye ICs; this is only
+            %useful if you want to see displays of each component that is marked for rejection, which could clog up your UI if you are running many subjects.
             %EEG = pop_subcomp( EEG, eyeIC, 0);
             %if
             %    EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_ica_er.set'], 'filepath', data_path_icaeyerej);
@@ -241,7 +242,7 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
         if (extract_epochs)
             fprintf('\n\n\n**** %s: Bin-based epoching ****\n\n\n', subject_list{s});
             
-            EEG = pop_epochbin( EEG , [epoch_begin_pre_onset epoch_end_post_onset],  'pre'); % Extracts epochs using times specified in script options (top)
+            EEG = pop_epochbin( EEG , [epoch_begin_pre_onset epoch_end_post_onset],  'pre'); % Extracts epochs using times specified in script options (top).
             EEG.setname= [subject_list{s} '_epoched'];
             if (save_everything)
                 EEG = pop_saveset(EEG, 'filename', [subject_list{s} '_epoched.set'], 'filepath', data_path_epoched);
@@ -287,9 +288,9 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
                     if (EEG.EVENTLIST.eventinfo(initnum).bini == bin)
                         epoch = EEG.EVENTLIST.eventinfo(initnum).bepoch;
                         all_epochs(end+1) = epoch;
-                        if (EEG.EVENTLIST.eventinfo(initnum).flag == 0) % Lack of flag in EVENTLIST, 0, indicates epoch was not selected for rejection
+                        if (EEG.EVENTLIST.eventinfo(initnum).flag == 0) % Lack of flag in EVENTLIST, 0, indicates epoch was not selected for rejection.
                             marked_accept(end+1) = epoch;
-                        elseif (EEG.EVENTLIST.eventinfo(initnum).flag == 1) % Presence of flag, 1, indicates epoch was selected for rejection
+                        elseif (EEG.EVENTLIST.eventinfo(initnum).flag == 1) % Presence of flag, 1, indicates epoch was selected for rejection.
                             marked_reject(end+1) = epoch;
                         end
                     end
@@ -312,19 +313,19 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
                 strbinall = ['bin' strbin '_all_epochs'];
                 strbinacc = ['bin' strbin '_accepted'];
                 strbinrej = ['bin' strbin '_rejected'];
-                if (bin_epochs.(strbinall) ~= 0) % Saves version of dataset that contains only accepted epochs
+                if (bin_epochs.(strbinall) ~= 0) % Saves versions of dataset that contains all epochs, separated by bins.
                     EEG = pop_loadset(last_file_altered);
                     EEG = pop_select( EEG,'trial',[bin_epochs.(strbinall)] );
                     EEG.setname = strbinall;
                     EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_bin' strbin '_all.set'], 'filepath', data_path_bin_epochs);
                 end
-                if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs
+                if (bin_epochs.(strbinacc) ~= 0) % Saves version of dataset that contains only accepted epochs, separated by bins.
                     EEG = pop_loadset(last_file_altered);
                     EEG = pop_select( EEG,'trial',[bin_epochs.(strbinacc)] );
                     EEG.setname = strbinacc;
                     EEG= pop_saveset(EEG, 'filename', [subject_list{s} '_' strbinacc '.set'], 'filepath', data_path_bin_accepted);
                 end
-                if (bin_epochs.(strbinrej) ~= 0) % Saves version of dataset that contains only rejected epochs
+                if (bin_epochs.(strbinrej) ~= 0) % Saves version of dataset that contains only rejected epochs, separated by bins.
                     EEG = pop_loadset(last_file_altered);
                     EEG = pop_select( EEG,'trial',[bin_epochs.(strbinrej)] );
                     EEG.setname = strbinrej;
