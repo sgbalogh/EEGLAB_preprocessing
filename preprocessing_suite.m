@@ -1,4 +1,6 @@
 %% CCSN EEGLAB/ERPLAB Pre-Processing Script
+%% Version 1.0.1
+
 % Created by Stephen Balogh (sbalogh@uchicago.edu) for
 % the Center for Cognitive and Social Neuroscience,
 % University of Chicago. Last updated 8/22/2015.
@@ -6,7 +8,7 @@
 % This code is being tracked at:
 % https://github.com/sgbalogh/EEGLAB_preprocessing
 
-% Script on a version by Carlos Cardenas-Iniguez
+% Script based on a version by Carlos Cardenas-Iniguez
 % (cardenas@uchicago.edu) from 7/22/2013.
 
 % Adapted from ERPLab Scripting Guide Version 3.0
@@ -56,9 +58,9 @@ parallel_proc = 1; % Run this script in parallel on a MATLAB cluster? If set to 
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only the final stage.
 
 starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively.
-epoch_begin_pre_onset = -300.0; 
-epoch_end_post_onset = 1000.0; % This (and previous) value may affect parameters of auto epoch rejection algorithms. Please review those parameters if you plan to use auto rejection.
-resample_value = 250;
+epoch_begin_pre_onset = -300.0; % Period, in ms, before bin-linked event; the "baseline", pre-onset period of your trial epoch.
+epoch_end_post_onset = 1000.0; % Amount of time, in trial epoch, after onset of bin-linked event. This (and previous) value may affect parameters of auto epoch rejection algorithms. Please review those parameters if you plan to use auto rejection.
+resample_value = 250; % Target sampling rate if downsampling is performed.
 
 filter_data = 1; % By default, high pass .1, low 30 Hz, notch at 60 Hz.
 resample_data = 1; % Downsample to value set above?
@@ -137,7 +139,7 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
         % Default: high pass 0.1 Hz, remove DC-bias, low pass at 30 Hz, notch at 60 Hz
         
         if (filter_data)
-            fprintf('\n\n\n**** %s: High-pass filtering EEG at 0.1, Low-pass filtering at 30Hz, Notch at 60 Hz ****\n\n\n', subject_list{s});
+            fprintf('\n\n\n**** %s: Filtering EEG data ****\n\n\n', subject_list{s});
             
             EEG  = pop_basicfilter( EEG,  1:128 , 'Cutoff',  60, 'Design', 'notch', 'Filter', 'PMnotch', 'Order',  180, 'RemoveDC', 'on' );
             EEG.setname = [subject_list{s} '_filt'];
@@ -151,9 +153,9 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
         end
         %
         
-        %% Downsample data to 250hz
+        %% Downsample data
         if (resample_data)
-            fprintf('\n\n\n**** %s: Downsampling to 250hz ****\n\n\n', subject_list{s});
+            fprintf('\n\n\n**** %s: Downsampling to %d Hz ****\n\n\n', subject_list{s}, resample_value);
             
             EEG = pop_resample( EEG, resample_value);
             EEG.setname = [subject_list{s} '_resam'];
