@@ -51,11 +51,14 @@ chan_loc = 'GSN-HydroCel-129.sfp'; % The name of your channel location map, whic
 input_raw = [home_path '/in_1_raw']; % Where your input EEG RAW files go,
 input_set = [home_path '/in_2_set']; % ... and where your input EEGLAB SET files go.
 
-%% Switches (always review):
+%% Options (always review):
 parallel_proc = 1; % Run this script in parallel on a MATLAB cluster? If set to 1, make sure that you change the main FOR-loop of this script into a PARFOR-loop. Therefore, change 'for s=1:nsubj' -> 'parfor s=1:nsubj'.
-
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only the final stage.
+
 starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively.
+epoch_begin_pre_onset = -300.0; 
+epoch_end_post_onset = 1000.0; % This (and previous) value may affect parameters of auto epoch rejection algorithms. Please review those parameters if you plan to use auto rejection.
+resample_value = 250;
 
 filter_data = 1;
 resample_data = 1;
@@ -67,7 +70,7 @@ use_eyecatch = 0; % Requires that Measure Projection Toolbox is installed and co
 extract_epochs = 1;
 auto_epoch_rej = 1;
 bin_sorting = 1;
-calculate_ERP = 1;
+calculate_ERP = 1; % Calculates an ERP from the input dataset; if your conditions are split across multiple datasets, you may want to create ERP sets manually (so as to specify multiple inputs).
 
 %% Output paths (no changes needed):
 
@@ -153,7 +156,7 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
         if (resample_data)
             fprintf('\n\n\n**** %s: Downsampling to 250hz ****\n\n\n', subject_list{s});
             
-            EEG = pop_resample( EEG, 250);
+            EEG = pop_resample( EEG, resample_value);
             EEG.setname = [subject_list{s} '_resam'];
             if (save_everything)
                 EEG = pop_saveset(EEG, 'filename', [EEG.setname '.set'], 'filepath', data_path_resample);
@@ -238,7 +241,7 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
         if (extract_epochs)
             fprintf('\n\n\n**** %s: Bin-based epoching ****\n\n\n', subject_list{s});
             
-            EEG = pop_epochbin( EEG , [-300.0  1000.0],  'pre');
+            EEG = pop_epochbin( EEG , [epoch_begin_pre_onset epoch_end_post_onset],  'pre'); % Extracts epochs using times specified in script options (top)
             EEG.setname= [subject_list{s} '_epoched'];
             if (save_everything)
                 EEG = pop_saveset(EEG, 'filename', [subject_list{s} '_epoched.set'], 'filepath', data_path_epoched);
