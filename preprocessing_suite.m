@@ -73,7 +73,6 @@ bin_sorting = 1; % Sorts dataset into derivative datasets by bin, accepted trial
 calculate_ERP = 1; % Calculates an ERP from the input dataset; if your conditions are split across multiple datasets, you may want to create ERP sets manually (so as to specify multiple inputs).
 
 %% Output paths (no changes needed):
-
 data_path = [home_path '/out_1_set']; % Where you'll save the .SET files, if converting from .RAW.
 data_path_filt = [home_path '/out_2_filtered']; % Where you'll save files after filtering,
 data_path_resample = [home_path '/out_3_resampled']; % ... after downsampling,
