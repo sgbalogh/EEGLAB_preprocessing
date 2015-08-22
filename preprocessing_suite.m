@@ -1,10 +1,11 @@
+%% CCSN EEGLAB/ERPLAB Pre-Processing Script
 % Created by Stephen Balogh (sbalogh@uchicago.edu) for
 % the Center for Cognitive and Social Neuroscience,
 % University of Chicago. Last updated 8/22/2015.
-%
+
 % This code is being tracked at:
 % https://github.com/sgbalogh/EEGLAB_preprocessing
-%
+
 % Script on a version by Carlos Cardenas-Iniguez
 % (cardenas@uchicago.edu) from 7/22/2013.
 
@@ -17,12 +18,10 @@
 % Updates and revisions
 %
 % Modules to complete:
-% 1. Separation by bin (completed 8/20/2015)
+% 1.
 % ------------------------------------------------
 
-% Clear memory and the command window
-
-clear
+clear % Clear memory and the command window.
 clc
 
 %% Notes on multi-core processing (on acropolis.uchicago.edu with "torque" profile)
@@ -89,7 +88,7 @@ data_path_blist = [home_path '/out_blist']; % ... for BINLIST,
 data_path_erpset = [home_path '/out_ERP_set']; % ... for ERP set,
 data_path_erptext = [home_path '/out_ERP_text']; % ... and for text version of ERP set.
 
-if (parallel_proc) % Initializes MATLAB workers on UChicago SSD's Acropolis cluster, capped at 64 workers.
+if (parallel_proc) % Initializes MATLAB workers on UChicago SSD's Acropolis cluster, 'torque' profile, capped at 64 workers.
     if (nsubj <= 64)
         matlabpool('torque', nsubj); % Always make sure to release your workers after processing, with 'matlabpool close'.
     elseif (nsubj > 64);
@@ -101,10 +100,10 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
     
     fprintf('\n******\nProcessing subject %s\n******\n\n', subject_list{s});
     
-    %%
+    %% Start EEGLAB
     eeglab
-    %% IMPORT DATA
-    % Check to make sure the raw or set file exists
+    %% Import data
+    % Check to make sure that either a raw or set file exists
     
     sname_raw = [input_raw '/' subject_list{s} '.raw'];
     sname_set = [input_set '/' subject_list{s} '.set'];
@@ -114,8 +113,8 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
         fprintf('\n *** Skip all processing for this subject *** \n\n');
     else
         
-        %% Load RAW or SET file;
-        %
+        %% Load RAW or SET file
+        
         if (strcmp(starting_data,'raw'))
             fprintf('\n\n\n**** %s: Loading RAW file ****\n\n\n', subject_list{s});
             EEG = pop_readegi([input_raw '/' subject_list{s} '.raw']);
@@ -123,26 +122,24 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
             
         elseif (strcmp(starting_data,'set'))
             fprintf('\n\n\n**** %s: Loading SET file ****\n\n\n', subject_list{s});
-            EEG = pop_loadset([input_set '/' subject_list{s} '.set']);
-            
+            EEG = pop_loadset([input_set '/' subject_list{s} '.set']); 
         end
         
         if (save_everything)
             EEG = pop_saveset(EEG, 'filename', [subject_list{s} '.set'], 'filepath', data_path);
         end
         
-        last_file_altered = [data_path '/' subject_list{s} '.set'];
+        last_file_altered = [data_path '/' subject_list{s} '.set']; % Used to keep track of most recently saved file, in case subsequent actions are switched off.
         
-        %% Filter data - using high pass 0.1, remove dc, low pass at 30hz,
-        % notch at 60hz
+        %% Filter data
+        % Default: high pass 0.1 Hz, remove DC-bias, low pass at 30 Hz, notch at 60 Hz
+        
         if (filter_data)
             fprintf('\n\n\n**** %s: High-pass filtering EEG at 0.1, Low-pass filtering at 30Hz, Notch at 60 Hz ****\n\n\n', subject_list{s});
             
             EEG  = pop_basicfilter( EEG,  1:128 , 'Cutoff',  60, 'Design', 'notch', 'Filter', 'PMnotch', 'Order',  180, 'RemoveDC', 'on' );
-            
             EEG.setname = [subject_list{s} '_filt'];
             EEG = pop_basicfilter( EEG, 1:128, 'Cutoff', [0.1 30], 'Design', 'butter', 'Filter', 'bandpass', 'Order', 2, 'RemoveDC', 'on');
-            
             EEG.setname = [subject_list{s} '_filt'];
             
             if (save_everything)
@@ -164,10 +161,8 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
             last_file_altered = [data_path_resample '/' EEG.setname '.set'];
         end
         %
-        %%       % Add appropriate channel location information
+        %% Add appropriate channel location information
         
-        %         %change this path to match where channel information file is for
-        %         your setup (You can find this on the ERPLAB help site
         if (add_chlocs)
             EEG=pop_chanedit(EEG, 'lookup',[home_path '/helperfiles/' chan_loc]);
             EEG.setname = [EEG.setname '_chlocs'];
@@ -177,8 +172,9 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
             last_file_altered = [data_path_chlocs '/' EEG.setname '.set'];
         end
         
-        %         %
-        %%      Create EVENTLIST and save (pop_editeventlist adds _elist suffix)
+        %
+        %% Create EVENTLIST and save (pop_editeventlist adds _elist suffix)
+        
         if (make_eventlist)
             fprintf('\n\n\n**** %s: Creating eventlist ****\n\n\n', subject_list{s});
             
@@ -189,7 +185,7 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
             %to your data. You can do so using the Advanced EVENTLIST options.
             %The following commented line of code will work provided that you
             %provide a text list with the label--> code conversion
-            %
+            
             EEG  = pop_creabasiceventlist( EEG , 'AlphanumericCleaning', 'on', 'Eventlist', [data_path_elist '/' subject_list{s} '_elist.txt'], 'Newboundary', { -99 }, 'Stringboundary', { 'boundary' }, 'Warning', 'on' );
             %EEG  = pop_editeventlist( EEG , 'BoundaryNumeric', {255}, 'BoundaryString', { 'boundary' }, 'ExportEL', [elist_path subject_list{s} '_elist.txt'], 'List', '[LOCATION OF YOUR TEXT FILE WITH CODES HERE', 'SendEL2', 'EEG&Text', 'UpdateEEG', 'on' );
             EEG.setname = [EEG.setname '_elist'];
@@ -239,9 +235,6 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
         
         %%  Extracts bin-based epochs
         
-        % Then save with _epoched suffix
-        
-        %
         if (extract_epochs)
             fprintf('\n\n\n**** %s: Bin-based epoching ****\n\n\n', subject_list{s});
             
@@ -349,13 +342,12 @@ parfor s=1:nsubj %make this parfor s=1:nsubj if you want to run multi-core paral
             %ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],  1:numbins, 'electrodes', 'on', 'precision',  4, 'time', 'on', 'timeunit',  0.001 );
         end
         
-    end % of else statement
+    end % Of else statement
     %eeglab rebuild
     
-end % end of looping through all subjects
-%
+end % End of looping through all subjects
 
-matlabpool close
+matlabpool close % Release MATLAB workers.
 
 fprintf('\n\n\n**** FINISHED ****\n\n\n');
 fprintf('\n\n\n**** FINAL OUTPUT FILES ARE NAMED _epoched %s: ****\n\n\n', data_path);
