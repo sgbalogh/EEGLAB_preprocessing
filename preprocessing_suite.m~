@@ -1,17 +1,14 @@
 % Created by Stephen Balogh (sbalogh@uchicago.edu) for
-% the Center for Cognitive and Social Neuroscience,
-% University of Chicago. Last updated 8/22/2015.
+% the Center for Cognitive and Social Neuroscience, University
+% of Chicago. Last updated 8/22/2015.
 %
-% This code is being tracked at:
-% https://github.com/sgbalogh/EEGLAB_preprocessing
-%
-% Script on a version by Carlos Cardenas-Iniguez
-% (cardenas@uchicago.edu) from 7/22/2013.
+% Based on a version by Carlos Cardenas-Iniguez
+% (cardenas@uchicago.edu) on 7/22/2013.
 
 % Adapted from ERPLab Scripting Guide Version 3.0
 % please note changes below with date
-% Script tested for use on Matlab R2014b
-% Created using EEGLAB v13.4.4b, ERPLab version 5.0.0
+% Script tested for use on Matlab R2013b
+% Created using EEGLAB v13.2.1, ERPLab version 4.0.2.3
 
 % ------------------------------------------------
 % Updates and revisions
