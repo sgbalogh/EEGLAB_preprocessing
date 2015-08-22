@@ -1,5 +1,5 @@
 %% CCSN EEGLAB/ERPLAB Pre-Processing Script
-%% Version 1.0.1
+%% Version 1.0.2
 
 % Created by Stephen Balogh (sbalogh@uchicago.edu) for
 % the Center for Cognitive and Social Neuroscience,
@@ -27,6 +27,7 @@ clear % Clear memory and the command window.
 clc
 
 %% Notes on multi-core processing (on acropolis.uchicago.edu with "torque" profile)
+
 % If you want MATLAB to run multible versions of the below for-loop (most
 % useful for running several ICA computations simultaneously), you can use
 % the below command to distribute jobs to the MATLAB "workers". If you run this on the Social
@@ -41,19 +42,18 @@ clc
 % SysAdmin).
 
 %% Subject input list (always review):
+
 subject_list = {'A_NS701.002' 'A_NS702.002' 'A_NS704.002' 'A_NS706.002' 'A_NS708.002' 'A_NS710.002' 'A_NS712.002' 'A_NS701.004' 'A_NS703.002' 'A_NS705.002' 'A_NS707.002' 'A_NS709.002' 'A_NS711.002' 'A_NS713.002'};
 nsubj = length(subject_list); % Counts number of subjects in above array.
 
-%% Input paths (always review):
-home_path  = '/home/t-9balos/Documents/script_deploy_1'; % The full filepath to your home script directory ?? the directory that contains all sub-directories for input and output files.
+%% Input variables (always review):
 
+home_path  = '/home/t-9balos/Documents/script_deploy_1'; % The full filepath to your home script directory ?? the directory that contains all sub-directories for input and output files.
 bdf_name = 'ns_na_w49.txt'; % The name of your bin-descriptor file (BDF), which should reside in './helperfiles'.
 chan_loc = 'GSN-HydroCel-129.sfp'; % The name of your channel location map, which should also reside in './helperfiles'.
 
-input_raw = [home_path '/in_1_raw']; % Where your input EEG RAW files go,
-input_set = [home_path '/in_2_set']; % ... and where your input EEGLAB SET files go.
-
 %% Options (always review):
+
 parallel_proc = 1; % Run this script in parallel on a MATLAB cluster? If set to 1, make sure that you change the main FOR-loop of this script into a PARFOR-loop. Therefore, change 'for s=1:nsubj' -> 'parfor s=1:nsubj'.
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only the final stage.
 
@@ -74,7 +74,11 @@ auto_epoch_rej = 1; % Uses algorithms for automatically detecting epochs with ar
 bin_sorting = 1; % Sorts dataset into derivative datasets by bin, accepted trials, and rejected trials.
 calculate_ERP = 1; % Calculates an ERP from the input dataset; if your conditions are split across multiple datasets, you may want to create ERP sets manually (so as to specify multiple inputs).
 
-%% Output paths (no changes needed):
+%% Input/Output paths (no changes needed):
+
+input_raw = [home_path '/in_1_raw']; % Where your input EEG RAW files go,
+input_set = [home_path '/in_2_set']; % ... and where your input EEGLAB SET files go.
+
 data_path = [home_path '/out_1_set']; % Where you'll save the .SET files, if converting from .RAW.
 data_path_filt = [home_path '/out_2_filtered']; % Where you'll save files after filtering,
 data_path_resample = [home_path '/out_3_resampled']; % ... after downsampling,
@@ -105,6 +109,7 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
     fprintf('\n******\nProcessing subject %s\n******\n\n', subject_list{s});
     
     %% Start EEGLAB
+    
     eeglab
     %% Import data
     % Check to make sure that either a raw or set file exists
@@ -154,6 +159,7 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
         %
         
         %% Downsample data
+        
         if (resample_data)
             fprintf('\n\n\n**** %s: Downsampling to %d Hz ****\n\n\n', subject_list{s}, resample_value);
             
@@ -196,6 +202,7 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
         end
         
         %% Use Binlister to sort the bins and save with _blist suffix
+        
         if (do_binlister)
             fprintf('\n\n\n**** %s: Running Bin Lister ****\n\n\n', subject_list{s});
             
@@ -204,6 +211,7 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
         end
         %
         %% Compute ICA weights before extracting epochs
+        
         if (compute_ICA)
             fprintf('\n\n\n**** %s: Computing ICA Weights ****\n\n\n', subject_list{s});
             
@@ -336,7 +344,8 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
             end
         end
         
-        %% ERP set creation and export to text (universal)
+        %% ERP set creation and export to text/universal
+        
         if (calculate_ERP)
             EEG = pop_loadset(last_file_altered);
             ERP = pop_averager( EEG , 'Criterion', 'good', 'DSindex',1, 'Warning', 'off' );
@@ -355,4 +364,3 @@ end % End of looping through all subjects.
 matlabpool close % Release MATLAB workers.
 
 fprintf('\n\n\n**** FINISHED ****\n\n\n');
-fprintf('\n\n\n**** FINAL OUTPUT FILES ARE NAMED _epoched %s: ****\n\n\n', data_path);
