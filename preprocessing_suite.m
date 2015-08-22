@@ -346,10 +346,10 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
             %ERP = pop_export2text( ERP, [data_path_erptext '/' subject_list{s} '.txt'],  1:numbins, 'electrodes', 'on', 'precision',  4, 'time', 'on', 'timeunit',  0.001 );
         end
         
-    end % Of else statement
+    end % ...of else statement
     %eeglab rebuild
     
-end % End of looping through all subjects
+end % End of looping through all subjects.
 
 matlabpool close % Release MATLAB workers.
 
