@@ -1,5 +1,5 @@
 %% CCSN EEGLAB/ERPLAB Pre-Processing Script
-%% Version 1.0.2
+%% Version 1.0.3
 
 % Created by Stephen Balogh (sbalogh@uchicago.edu) for
 % the Center for Cognitive and Social Neuroscience,
@@ -31,8 +31,8 @@ clc
 % If you want MATLAB to run multible versions of the below for-loop (most
 % useful for running several ICA computations simultaneously), you can use
 % the below command to distribute jobs to the MATLAB "workers". If you run this on the Social
-% Science Division's acropolis supercomputer, then you will want to start
-% the torque profile, which allows you up to 64 workers.
+% Science Division's Acropolis supercomputer, then you will want to start
+% the 'torque' profile, which allows you up to 64 workers.
 %
 % NOTE: Make sure that when your script finishs you issue "matlabpool
 % close"; this should be a part of this script, but you need to make sure
@@ -43,21 +43,21 @@ clc
 
 %% Subject input list (always review):
 
-subject_list = {'A_NS701.002' 'A_NS702.002' 'A_NS704.002' 'A_NS706.002' 'A_NS708.002' 'A_NS710.002' 'A_NS712.002' 'A_NS701.004' 'A_NS703.002' 'A_NS705.002' 'A_NS707.002' 'A_NS709.002' 'A_NS711.002' 'A_NS713.002'};
+subject_list = {'A_NS702.002' 'A_NS703.002'};
 nsubj = length(subject_list); % Counts number of subjects in above array.
 
 %% Input variables (always review):
 
-home_path  = '/home/t-9balos/Documents/script_deploy_1'; % The full filepath to your home script directory ?? the directory that contains all sub-directories for input and output files.
-bdf_name = 'ns_na_w49.txt'; % The name of your bin-descriptor file (BDF), which should reside in './helperfiles'.
+home_path  = '/Users/stephen/Desktop/script_deploy'; % The full filepath to your home script directory -- the directory that contains all sub-directories for input and output files.
+bdf_name = 'stroop_bdf.txt'; % The name of your bin-descriptor file (BDF), which should reside in './helperfiles'.
 chan_loc = 'GSN-HydroCel-129.sfp'; % The name of your channel location map, which should also reside in './helperfiles'.
 
-%% Options (always review):
+%% Options and switches (always review):
 
-parallel_proc = 1; % Run this script in parallel on a MATLAB cluster? If set to 1, make sure that you change the main FOR-loop of this script into a PARFOR-loop. Therefore, change 'for s=1:nsubj' -> 'parfor s=1:nsubj'.
+parallel_proc = 0; % Run this script in parallel on a MATLAB cluster? If set to 1, make sure that you change the main FOR-loop of this script into a PARFOR-loop. Therefore, change 'for s=1:nsubj' -> 'parfor s=1:nsubj'.
 save_everything = 1; % Set the save_everything variable to 1 to save all of the intermediate files to the hard drive, 0 to save only the final stage.
 
-starting_data = 'raw'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively.
+starting_data = 'set'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively.
 epoch_begin_pre_onset = -300.0; % Period, in ms, before bin-linked event; the "baseline", pre-onset period of your trial epoch.
 epoch_end_post_onset = 1000.0; % Amount of time, in trial epoch, after onset of bin-linked event. This (and previous) value may affect parameters of auto epoch rejection algorithms. Please review those parameters if you plan to use auto rejection.
 resample_value = 250; % Target sampling rate if downsampling is performed.
@@ -67,7 +67,7 @@ resample_data = 1; % Downsample to value set above?
 add_chlocs = 1; % Attach channel location map to dataset? Required for ICA.
 make_eventlist = 1; % Produce EVENTLIST and save to file (necessary for binlister).
 do_binlister = 1; % Associates events in continuous data with bins specified in your bin-descriptor file (BDF).
-compute_ICA = 1; % Run continuous data through ICA? This is very processor intensive, and should be run in parallel if possible.
+compute_ICA = 0; % Run continuous data through ICA? This is very processor intensive, and should be run in parallel if possible.
 use_eyecatch = 0; % Requires that Measure Projection Toolbox is installed and configured in your MATLAB environment. This section is inactivated by default.
 extract_epochs = 1; % Creates epochs based on events that are placed into bins.
 auto_epoch_rej = 1; % Uses algorithms for automatically detecting epochs with artifacts, and marks them for rejection.
@@ -95,6 +95,7 @@ data_path_elist = [home_path '/out_elist']; % Site of export for EVENTLIST,
 data_path_blist = [home_path '/out_blist']; % ... for BINLIST,
 data_path_erpset = [home_path '/out_ERP_set']; % ... for ERP set,
 data_path_erptext = [home_path '/out_ERP_text']; % ... and for text version of ERP set.
+data_path_bin_summaries = [home_path '/out_bin_summaries'];
 
 if (parallel_proc) % Initializes MATLAB workers on UChicago SSD's Acropolis cluster, 'torque' profile, capped at 64 workers.
     if (nsubj <= 64)
@@ -104,7 +105,7 @@ if (parallel_proc) % Initializes MATLAB workers on UChicago SSD's Acropolis clus
     end
 end
 
-parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi-core parallelized version, and 'for s=1:nsubj' otherwise.
+for s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi-core parallelized version, and 'for s=1:nsubj' otherwise.
     
     fprintf('\n******\nProcessing subject %s\n******\n\n', subject_list{s});
     
@@ -342,6 +343,8 @@ parfor s=1:nsubj % NOTE: make this 'parfor s=1:nsubj' if you want to run a multi
                 end
                 bin = bin + 1;
             end
+            
+            save ([data_path_bin_summaries '/' subject_list{s} '_bins.mat'], 'bin_epochs');
         end
         
         %% ERP set creation and export to text/universal
