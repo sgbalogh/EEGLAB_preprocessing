@@ -60,10 +60,10 @@ save_everything = 1; % Set the save_everything variable to 1 to save all of the 
 starting_data = 'set'; % Set to either 'raw' or 'set' for .RAW EEG data or .SET EEGLAB datasets, respectively.
 epoch_begin_pre_onset = -300.0; % Period, in ms, before bin-linked event; the "baseline", pre-onset period of your trial epoch.
 epoch_end_post_onset = 1000.0; % Amount of time, in trial epoch, after onset of bin-linked event. This (and previous) value may affect parameters of auto epoch rejection algorithms. Please review those parameters if you plan to use auto rejection.
-resample_value = 250; % Target sampling rate if downsampling is performed.
+resample_value = 500; % Target sampling rate if downsampling is performed.
 
 filter_data = 1; % By default, high pass .1, low 30 Hz, notch at 60 Hz.
-resample_data = 1; % Downsample to value set above?
+resample_data = 0; % Downsample to value set above?
 add_chlocs = 1; % Attach channel location map to dataset? Required for ICA.
 make_eventlist = 1; % Produce EVENTLIST and save to file (necessary for binlister).
 do_binlister = 1; % Associates events in continuous data with bins specified in your bin-descriptor file (BDF).
